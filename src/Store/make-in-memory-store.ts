@@ -78,6 +78,14 @@ export default (config: BaileysInMemoryStoreConfig) => {
 		}
 	}
 
+        const getValidContacts = () => {
+		for (const contact of Object.keys(contacts)){
+	if (contact.indexOf('@') < 0){
+		delete contacts[contact]
+			}
+		}
+		return Object.keys(contacts)
+	}
 	/**
 	 * binds to a BaileysEventEmitter.
 	 * It listens to all events and constructs a state that you can query accurate data from.
@@ -136,7 +144,7 @@ export default (config: BaileysInMemoryStoreConfig) => {
 				} else {
 					const contactHashes = await Promise.all(Object.keys(contacts).map(async contactId => {
 						const { user } = jidDecode(contactId)!
-						return [contactId, (await md5(Buffer.from(user + 'WA_ADD_NOTIF', 'utf8'))).toString('base64').slice(0, 3)]
+						return [contactId, (md5(Buffer.from(user + 'WA_ADD_NOTIF', 'utf8'))).toString('base64').slice(0, 3)]
 					}))
 					contact = contacts[contactHashes.find(([, b]) => b === update.id)?.[0] || ''] // find contact by attrs.hash, when user is not saved as a contact
 				}
@@ -147,11 +155,11 @@ export default (config: BaileysInMemoryStoreConfig) => {
 					} else if(update.imgUrl === 'removed') {
 						delete contact.imgUrl
 					}
+					
+					Object.assign(contacts[contact.id], contact)
 				} else {
-					return logger.debug({ update }, 'got update for non-existant contact')
+				        logger.debug({ update }, 'got update for non-existant contact')
 				}
-
-				Object.assign(contacts[contact.id], contact)
 			}
 		})
 		ev.on('chats.upsert', newChats => {
