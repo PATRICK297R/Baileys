@@ -140,15 +140,15 @@ export default (config: BaileysInMemoryStoreConfig) => {
 			for(const update of updates) {
 				let contact: Contact
 				if(contacts[update.id!]) {
-					contact = contacts[update.id!]
-				} else {
-					const contactHashes = await Promise.all(Object.keys(contacts).map(async contactId => {
-						const { user } = jidDecode(contactId)!
-						return [contactId, (md5(Buffer.from(user + 'WA_ADD_NOTIF', 'utf8'))).toString('base64').slice(0, 3)]
-					}))
-					contact = contacts[contactHashes.find(([, b]) => b === update.id)?.[0] || ''] // find contact by attrs.hash, when user is not saved as a contact
-				}
-
+					const contactHashes = await Promise.all(Object.keys(contacts).map(async (contactId) => {
+                const decoded = (0, WABinary_1.jidDecode)(contactId);
+                if (decoded && decoded.user) {
+                    return [contactId, ((0, Utils_1.md5)(Buffer.from(decoded.user + 'WA_ADD_NOTIF', 'utf8'))).toString('base64').slice(0, 3)];
+                }
+                return [contactId, ''];
+            }));
+            contact = contacts[((_a = contactHashes.find(([, b]) => b === update.id)) === null || _a === void 0 ? void 0 : _a[0]) || ''];
+        }
 				if(contact) {
 					if(update.imgUrl === 'changed') {
 						contact.imgUrl = socket ? await socket?.profilePictureUrl(contact.id) : undefined
